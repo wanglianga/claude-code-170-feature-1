@@ -18,14 +18,18 @@ import java.util.Map;
 public class EventController {
 
     private final EventService eventService;
+    private final com.community.eldercare.service.DoorEscalationService doorService;
     private final HelpEventRepository eventRepo;
     private final SseService sseService;
     private final com.community.eldercare.security.TokenService tokenService;
 
-    public EventController(EventService eventService, HelpEventRepository eventRepo,
+    public EventController(EventService eventService,
+                           com.community.eldercare.service.DoorEscalationService doorService,
+                           HelpEventRepository eventRepo,
                            SseService sseService,
                            com.community.eldercare.security.TokenService tokenService) {
         this.eventService = eventService;
+        this.doorService = doorService;
         this.eventRepo = eventRepo;
         this.sseService = sseService;
         this.tokenService = tokenService;
@@ -73,7 +77,10 @@ public class EventController {
 
     @GetMapping("/{id}")
     public R<Map<String, Object>> detail(@PathVariable Long id) {
-        return R.ok(eventService.detail(id));
+        Map<String, Object> m = eventService.detail(id);
+        // 并入无法开门多方确认处置聚合（处置单/联系步骤/破门记录/费用/家属确认）
+        m.putAll(doorService.detailFor(id));
+        return R.ok(m);
     }
 
     /** 研判 */
