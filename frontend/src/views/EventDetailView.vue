@@ -137,11 +137,14 @@
           </div>
         </el-card>
 
+        <!-- 无法开门：多方确认与破门救助 -->
+        <DoorRescuePanel :event-id="route.params.id" :data="d" :can-operate="d.event?.status !== 'CLOSED'"
+                        @changed="load" />
+
         <el-row :gutter="12">
           <el-col :span="12">
             <el-card shadow="never" style="margin-bottom:12px">
-              <template #header><span class="section-title">后续服务（{{ d.services?.length || 0 }}）</span></template>
-              <el-empty v-if="!d.services?.length" :image-size="40" description="无" />
+              <template #header><span class="section-title">后续服务（{{ d.services?.length || 0 }}）</span></template>              <el-empty v-if="!d.services?.length" :image-size="40" description="无" />
               <el-table v-else :data="d.services" size="small">
                 <el-table-column label="类型" width="100">
                   <template #default="{ row }">{{ SERVICE_LABEL[row.serviceType] }}</template>
@@ -523,6 +526,7 @@ import {
   EditPen, Picture, UserFilled
 } from '@element-plus/icons-vue'
 import api from '../api'
+import DoorRescuePanel from './DoorRescuePanel.vue'
 import {
   SOURCE_LABEL, TRIAGE_LABEL, SEVERITY_LABEL, SEVERITY_TAG, TARGET_LABEL,
   SERVICE_LABEL, FOLLOW_RESULT_LABEL, RISK_LABEL, RISK_TAG, STATUS_LABEL, STATUS_TAG,
@@ -536,12 +540,14 @@ const loading = ref(false)
 const DISPATCH_STATUS = { NOTIFIED: '已通知', ACCEPTED: '已受理', ARRIVED: '已到场', REJECTED: '无法响应' }
 const LOG_LABEL = {
   HELP: '求助', TRIAGE: '研判', DISPATCH: '转介', ONSITE: '上门', SERVICE: '服务',
-  FAMILY_COMM: '家属沟通', FOLLOW_UP: '回访', CLOSE: '归档', SYSTEM: '系统', NOTE: '备注'
+  FAMILY_COMM: '家属沟通', FOLLOW_UP: '回访', CLOSE: '归档', SYSTEM: '系统', NOTE: '备注',
+  DOOR_CONTACT: '多方确认', DOOR_RESCUE: '破门救助', DOOR_CONFIRM: '家属确认'
 }
 const LOG_TYPE = {
   HELP: 'danger', TRIAGE: 'warning', DISPATCH: 'warning', ONSITE: 'primary',
   SERVICE: 'success', FAMILY_COMM: 'info', FOLLOW_UP: 'success', CLOSE: 'success',
-  SYSTEM: 'info', NOTE: 'info'
+  SYSTEM: 'info', NOTE: 'info',
+  DOOR_CONTACT: 'warning', DOOR_RESCUE: 'danger', DOOR_CONFIRM: 'success'
 }
 
 const flags = computed(() => (d.value.event?.riskFlags || '').split(',').filter(Boolean))

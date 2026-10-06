@@ -31,6 +31,8 @@ public class EventService {
     private final EventFollowUpRepository followUpRepo;
     private final EmergencyContactRepository contactRepo;
     private final NeighborResponderRepository neighborRepo;
+    private final DoorContactAttemptRepository doorContactRepo;
+    private final DoorBreakRescueRepository doorRescueRepo;
     private final SseService sse;
 
     @Value("${app.location-offset-meters:500}")
@@ -44,6 +46,8 @@ public class EventService {
                         OnsiteVisitRepository onsiteRepo, EventServiceRepository serviceRepo,
                         FamilyCommunicationRepository commRepo, EventFollowUpRepository followUpRepo,
                         EmergencyContactRepository contactRepo, NeighborResponderRepository neighborRepo,
+                        DoorContactAttemptRepository doorContactRepo,
+                        DoorBreakRescueRepository doorRescueRepo,
                         SseService sse) {
         this.eventRepo = eventRepo;
         this.elderRepo = elderRepo;
@@ -55,6 +59,8 @@ public class EventService {
         this.followUpRepo = followUpRepo;
         this.contactRepo = contactRepo;
         this.neighborRepo = neighborRepo;
+        this.doorContactRepo = doorContactRepo;
+        this.doorRescueRepo = doorRescueRepo;
         this.sse = sse;
     }
 
@@ -516,6 +522,7 @@ public class EventService {
         if (flags.contains("REFUSE_HOSPITAL")) weight += 2;
         if (flags.contains("HOME_SAFETY_HAZARD")) weight += 2;
         if (flags.contains("FREQUENT_NIGHT_HELP")) weight += 2;
+        if (flags.contains("DOOR_BREAK_RESCUE")) weight += 2;
         if (e.isHospitalTransfer()) weight += 1;
 
         String newLevel;
@@ -551,6 +558,8 @@ public class EventService {
         m.put("services", serviceRepo.findByEventIdOrderByServiceAtAsc(id));
         m.put("communications", commRepo.findByEventIdOrderByCommunicatedAtAsc(id));
         m.put("followUps", followUpRepo.findByEventIdOrderByFollowedUpAtAsc(id));
+        m.put("doorContacts", doorContactRepo.findByEventIdOrderBySeqAscIdAsc(id));
+        m.put("doorRescue", doorRescueRepo.findByEventId(id).orElse(null));
         return m;
     }
 
@@ -718,6 +727,7 @@ public class EventService {
             case "REFUSE_HOSPITAL" -> "老人拒绝就医";
             case "HOME_SAFETY_HAZARD" -> "家中存在安全隐患";
             case "FREQUENT_NIGHT_HELP" -> "频繁夜间求助";
+            case "DOOR_BREAK_RESCUE" -> "已破门/锁匠救助";
             default -> s;
         };
     }

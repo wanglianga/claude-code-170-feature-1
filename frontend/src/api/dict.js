@@ -52,7 +52,8 @@ export const RISK_LABEL = {
   NEIGHBOR_INFO_UNCLEAR: '邻居代报信息不清',
   REFUSE_HOSPITAL: '老人拒绝就医',
   HOME_SAFETY_HAZARD: '家中存在安全隐患',
-  FREQUENT_NIGHT_HELP: '频繁夜间求助'
+  FREQUENT_NIGHT_HELP: '频繁夜间求助',
+  DOOR_BREAK_RESCUE: '已破门/锁匠救助'
 }
 
 export const RISK_TAG = {
@@ -62,8 +63,56 @@ export const RISK_TAG = {
   NEIGHBOR_INFO_UNCLEAR: 'warning',
   REFUSE_HOSPITAL: 'danger',
   HOME_SAFETY_HAZARD: 'danger',
-  FREQUENT_NIGHT_HELP: 'danger'
+  FREQUENT_NIGHT_HELP: 'danger',
+  DOOR_BREAK_RESCUE: 'danger'
 }
+
+/* 无法开门多方确认 */
+export const DOOR_PARTY_LABEL = {
+  FAMILY: '家属',
+  PROPERTY: '物业',
+  NEIGHBOR: '邻居',
+  POLICE: '派出所'
+}
+export const DOOR_PARTY_ORDER = ['FAMILY', 'PROPERTY', 'NEIGHBOR', 'POLICE']
+
+export const DOOR_ACTION_LABEL = {
+  BREAK_DOOR: '破门入户',
+  LOCKSMITH: '请锁匠开锁',
+  BOTH: '破门并换锁'
+}
+
+export const AUTH_LABEL = {
+  FAMILY_AUTHORIZED: '家属授权',
+  POLICE_ORDER: '民警现场决定',
+  COMMUNITY_EMERGENCY: '社区紧急避险决定',
+  OTHER: '其他依据'
+}
+
+export const EXPENSE_TYPE_LABEL = {
+  LOCK_OPEN: '开锁费',
+  LOCK_REPLACE: '锁具更换费',
+  DOOR_REPAIR: '门体修复费',
+  WINDOW_REPAIR: '窗户修复费',
+  TEMP_CARE: '临时陪护费',
+  OTHER: '其他费用'
+}
+
+export const BEARER_LABEL = {
+  FAMILY: '家庭承担',
+  COMMUNITY_AID: '社区救助',
+  INSURANCE: '保险理赔',
+  PENDING: '待家属确认'
+}
+
+export const BEARER_TAG = {
+  FAMILY: 'warning',
+  COMMUNITY_AID: 'success',
+  INSURANCE: 'primary',
+  PENDING: 'info'
+}
+
+export const ELDER_PLACEMENT_OPTIONS = ['送医救治', '社区临时照护点', '家属接走', '邻居暂为照护', '居家（已恢复安全）']
 
 export const STATUS_LABEL = {
   NEW: '待研判',
