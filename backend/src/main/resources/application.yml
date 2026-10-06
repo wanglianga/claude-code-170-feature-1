@@ -1,0 +1,44 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: eldercare
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    time-zone: Asia/Shanghai
+  datasource:
+    url: ${ELDERCARE_DB_URL:jdbc:postgresql://localhost:5433/eldercare}
+    username: ${ELDERCARE_DB_USER:care}
+    password: ${ELDERCARE_DB_PASSWORD:care123}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: true
+    properties:
+      hibernate:
+        format_sql: false
+        jdbc:
+          time_zone: Asia/Shanghai
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      database: 0
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+
+app:
+  upload-dir: ${UPLOAD_DIR:./uploads}
+  # 定位偏移判定阈值（米）：求助位置与档案住址距离超过该值即标记“定位偏移”
+  location-offset-meters: 500
+  # 30 天内夜间求助达到该次数即标记“频繁夜间求助”
+  frequent-night-threshold: 3
+
+logging:
+  level:
+    com.community.eldercare: info

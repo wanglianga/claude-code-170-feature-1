@@ -1,0 +1,187 @@
+# 社区独居老人一键求助 · 上门核实转介回访平台
+
+面向社区独居老人照护场景：老人通过**智能按钮、电话、社区小程序**发起求助后，值班社工在同一条事件中完成
+**求助受理 → 研判分类 → 分级转介 → 上门核实 → 后续服务 → 家属沟通 → 回访归档**，
+并在归档时联动更新老人照护画像、家属响应表现、邻里协助可信度与下一次主动关怀计划，
+支撑社区管理者按风险等级、响应时长、服务类型、回访结果复盘独居老人照护能力。
+
+## 技术栈
+
+- 前端：Vue 3 + Vite + Element Plus + Pinia + Vue Router + ECharts（SSE 实时告警）
+- 后端：Spring Boot 3.3 + Spring Data JPA + Redis（登录令牌）+ PostgreSQL
+- 基础设施：Docker Compose 一键启动 postgres / redis / backend / frontend
+
+## 目录结构
+
+```
+170-b/
+├── docker-compose.yml          # 一键启动全部服务
+├── backend/                    # Spring Boot 后端（端口 8080）
+│   ├── Dockerfile
+│   └── src/main/java/com/community/eldercare/
+│       ├── domain/             # 老人画像、求助事件聚合（研判/转介/上门/服务/沟通/回访/时间线）
+│       ├── service/            # 事件全生命周期、风险标记、归档联动画像更新、复盘统计
+│       ├── controller/         # REST API
+│       ├── security/           # Redis Token 鉴权
+│       └── notify/             # SSE 实时推送
+└── frontend/                   # Vue3 前端（dev 5173 / 容器 Nginx 8081）
+    ├── Dockerfile
+    ├── nginx.conf
+    └── src/views/              # 值班工作台 / 事件处置 / 老人画像 / 照护复盘
+```
+
+## 一、Docker 一键启动（推荐）
+
+前置：安装 Docker 与 Docker Compose。
+
+```bash
+cd 170-b
+docker compose up -d --build
+```
+
+启动后访问：
+
+| 服务 | 地址 |
+| --- | --- |
+| 前端页面 | http://localhost:8081 |
+| 后端 API | http://localhost:8080/api |
+
+首次启动自动建表并写入 5 个测试账号和 3 位示例老人档案（周桂兰、吴德海、郑秀珍）。
+
+停止与清理：
+
+```bash
+docker compose down          # 停止（保留数据卷）
+docker compose down -v       # 停止并清空数据库/上传文件
+```
+
+## 二、本地开发启动
+
+### 1. 准备 PostgreSQL 与 Redis
+
+```bash
+# PostgreSQL 15（创建库 eldercare，账号 care / 密码 care123）
+createdb -U care eldercare
+# Redis（默认 6379，无密码）
+redis-server --daemonize yes
+```
+
+如数据库地址不同，可用环境变量覆盖：
+`ELDERCARE_DB_URL`、`ELDERCARE_DB_USER`、`ELDERCARE_DB_PASSWORD`、`REDIS_HOST`、`REDIS_PORT`。
+
+### 2. 启动后端（:8080）
+
+```bash
+cd backend
+mvn spring-boot:run
+# 或：mvn package -DskipTests && java -jar target/eldercare.jar
+```
+
+### 3. 启动前端（:5173，自动代理 /api 到 8080）
+
+```bash
+cd frontend
+npm install        # 如遇官方源慢：npm config set registry https://registry.npmmirror.com
+npm run dev
+```
+
+浏览器打开 http://localhost:5173 。
+
+## 测试账号（密码均为 `123456`）
+
+| 账号 | 角色 |
+| --- | --- |
+| worker | 值班社工（李社工） |
+| grid | 网格员（赵网格员） |
+| doctor | 家庭医生（钱医生） |
+| volunteer | 邻里志愿者（孙阿姨） |
+| admin | 社区管理者（王主任） |
+
+## 业务功能与验证路径
+
+### 1. 一条事件贯通全流程（“求助—核实—上门—转介—服务—家属沟通—回访”）
+
+值班工作台 →「模拟一键求助」选择老人与来源（智能按钮/电话/小程序），填写语音内容与定位 →
+进入事件详情，依次操作：
+
+1. **值班研判**：生活协助 / 身体不适 / 跌倒风险 / 情绪危机 / 误触，严重程度 低/中/高/紧急；
+2. **转介通知**：按严重程度通知网格员 / 邻里志愿者 / 家庭医生 / 120，可登记邻居代报及信息是否清晰，并更新受理/到场状态；
+3. **上门核实**：入户方式（钥匙、门禁密码、智能锁授权、邻居/家属开门、破锁、未能入户）、现场照片上传、
+   老人状态、是否联系家属、是否需要送医、是否拒绝就医、是否需要临时照护、后续服务建议、家中安全隐患；
+4. **家属沟通**：多次拨打接通情况与态度（连续未接通自动判定“家属长期不接电话”）；
+5. **后续服务**：临时照护、送医陪诊、日常巡访、助餐、适老化改造、心理陪伴；
+6. **回访归档**：好转/平稳/恶化/未联系上 + 满意度 + 下一次主动关怀计划，归档联动更新画像。
+
+右侧固定展示**老人照护画像**（长期独居、燃气报警器、最近家属探访、医生随访结论、历史误触、
+基础病、门禁信息、紧急联系人、邻里响应人），底部为全过程时间线留痕。
+
+### 2. 七类特殊风险自动/手动标记，全程沉淀在同一事件
+
+| 风险 | 触发方式 |
+| --- | --- |
+| 无法开门 | 上门记录“未能入户”或入户方式为未能入户 |
+| 定位偏移 | 求助坐标与档案住址距离 > 500 米自动判定（阈值可配） |
+| 家属长期不接电话 | 档案联系人已标记，或同一事件累计 ≥2 次未接通 / 联系人累计未接通率超 2/3 |
+| 邻居代报信息不清 | 转介时勾选“邻居代报·信息不清”，同时下调该邻里可信度 |
+| 老人拒绝就医 | 上门记录勾选 |
+| 家中存在安全隐患 | 上门填写隐患描述（自动建议适老化改造） |
+| 频繁夜间求助 | 22:00–06:00 求助，近 30 天夜间求助 ≥3 次自动标记（阈值可配） |
+
+### 3. 事件不停在处置结果——归档联动更新
+
+回访归档后系统自动：
+
+- 重算老人**综合风险等级**；
+- 更新**家属响应表现评分**（本事件接通率）与联系人接通统计；
+- 更新**邻里协助可信度**（有效响应、代报信息质量）；
+- 累加**误触记录**；
+- 依据跌倒/隐患/情绪危机/临时照护等勾选**增加日常巡访、助餐、适老化改造、心理陪伴**建议；
+- 生成**下一次主动关怀计划**（可手动指定，否则按严重程度 1/3/7/14 天自动排期）。
+
+### 4. 社区管理者复盘
+
+「照护能力复盘」页（admin 账号可看全部数据）支持按时间区间统计：
+事件总数/夜间/送医、按风险等级分布、按研判类型分布、按服务类型分布、按回访结果分布、
+每日求助趋势、平均/最快/最慢响应时长与 15 分钟到场率、七类风险场景出现频次。
+
+## 主要 API（服务端实现）
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| POST | /api/auth/login | 登录获取 Redis 令牌 |
+| GET | /api/events/stream | SSE 实时推送（新求助/状态变更/归档） |
+| POST | /api/events | 发起求助（自动定位偏移/夜间/频繁夜间/家属失联标记） |
+| GET | /api/events?status=&all=&elderId= | 事件队列 |
+| GET | /api/events/{id} | 事件聚合详情（含画像、各环节记录、时间线） |
+| POST | /api/events/{id}/triage | 研判 |
+| POST | /api/events/{id}/dispatches | 转介通知 |
+| PUT | /api/events/dispatches/{id}/status | 受理/到场/无法响应 |
+| POST | /api/events/{id}/onsite | 上门核实 |
+| POST | /api/events/{id}/services | 后续服务 |
+| POST | /api/events/{id}/family-communications | 家属沟通 |
+| POST | /api/events/{id}/follow-up | 回访并归档（画像联动更新） |
+| POST | /api/events/{id}/flags | 人工补充风险标记 |
+| POST | /api/files/upload | 现场照片/语音上传 |
+| GET/POST/PUT | /api/elders... | 老人档案、紧急联系人、邻里响应人管理 |
+| GET | /api/stats/overview?from=&to= | 复盘统计 |
+
+## 已执行的验证（本地实际验证结论）
+
+验证环境：JDK 17 + Maven 3.8 + Node 22 + PostgreSQL 15 + Redis 7（2026-10-05）。
+
+1. **后端编译打包**：`mvn package -DskipTests` 成功，产出 `target/eldercare.jar`。
+2. **全链路 API 冒烟**（curl，worker 账号）：
+   - 发起周桂兰夜间智能按钮求助，求助点距住址 **1516 米，自动标记“定位偏移”**，并因档案儿子长期不接电话自动标记“家属长期不接电话”；
+   - 完成研判（跌倒风险/紧急）→ 转介（邻居代报信息不清 + 网格员到场）→ 家属 2 次未接通 →
+     上门（智能锁授权、已跌倒、需送医、拒绝就医、需临时照护、家中安全隐患）→ 临时照护服务 → 回访“好转”归档；
+   - 归档后事件风险标记为 `LOCATION_OFFSET, FAMILY_UNREACHABLE, NEIGHBOR_INFO_UNCLEAR, REFUSE_HOSPITAL, HOME_SAFETY_HAZARD`，
+     老人画像更新为**极高风险**、家属响应评分 0、邻里可信度由 90 调整为 75、自动排期次日适老化改造关怀，
+     并勾选日常巡访/助餐/适老化改造建议；
+   - 另验证误触事件归档后吴德海误触计数 +1（风险等级不因误触降级）。
+3. **频繁夜间求助**：对郑秀珍连续发起第 3 次夜间求助时，事件自动带上 `FREQUENT_NIGHT_HELP` 标记。
+4. **鉴权**：无令牌访问 `/api/elders` 返回 401；错误密码登录被拒。
+5. **SSE**：工作台建立 `/api/events/stream` 连接后，新求助实时推送 `event-new`。
+6. **文件上传**：`POST /api/files/upload` 返回可访问 URL，静态资源 200。
+7. **前端**：`npm run build` 构建成功（2234 模块）；Vite dev（5173）启动后经代理登录 admin 成功，页面可正常打开。
+
+> 说明：上门照片上传接口已实测；界面中的现场照片展示在没有真实图片时为示例路径。
